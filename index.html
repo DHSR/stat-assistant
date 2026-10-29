@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<!--
+    Asistente de Decisión Estadística | Statistical Decision Assistant
+    Basado en el artículo "Modelo para seleccionar pruebas estadísticas implementado en una app bilingüe".
+
+    Licencia MIT / MIT License
+    Copyright (c) 2026 Daniel H. Solis, David Hutchinson, Nancy Longnecker
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+-->
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistical Decision Assistant | Asistente Estadístico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        h1, h2, h3, .font-serif {
+            font-family: 'Merriweather', serif;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .lang-active {
+            font-weight: 600;
+            color: #0f172a;
+            border-bottom: 2px solid #0f172a;
+        }
+        .lang-inactive {
+            color: #64748b;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-8 px-4 sm:px-6">
+
+    <header class="max-w-4xl w-full mb-6 flex flex-col items-center relative">
+        <div class="absolute right-0 top-0 flex space-x-4 text-sm">
+            <button id="btn-es" onclick="setLanguage('es')" class="lang-active pb-1 transition-all">Español</button>
+            <button id="btn-en" onclick="setLanguage('en')" class="lang-inactive pb-1 transition-all">English</button>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-slate-800 mb-2 mt-8 sm:mt-0 text-center" id="main-title">
+            Asistente de Decisión Estadística
+        </h1>
+        <p class="text-slate-500 text-sm text-center max-w-2xl" id="subtitle">
+            Basado en el artículo "Modelo para seleccionar pruebas estadísticas implementado en una app bilingüe"
+        </p>
+    </header>
+
+    <main class="max-w-4xl w-full bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-[450px] flex flex-col relative fade-in" id="app-container">
+        
+        <!-- Top Bar -->
+        <div class="bg-slate-50 border-b border-slate-100 px-6 py-4 flex justify-between items-center">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider" id="step-indicator">Paso 1</span>
+            <button id="btn-back" onclick="goBack()" class="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors hidden">
+                &larr; <span id="back-text">Volver</span>
+            </button>
+        </div>
+
+        <!-- Content Area -->
+        <div class="p-6 sm:p-10 flex-grow flex flex-col justify-center" id="content-area">
+            <!-- Dynamic content injected here -->
+        </div>
+
+    </main>
+
+    <footer class="max-w-4xl w-full mt-8 text-center text-xs text-slate-400 space-y-4">
+        <p id="disclaimer-text" class="italic max-w-3xl mx-auto">
+            Descargo de responsabilidad: Esta aplicación es una herramienta de apoyo educativo y metodológico basada en directrices conservadoras para ciencias sociales expuestas en la literatura. No sustituye la asesoría formal de un especialista. Los creadores no asumen responsabilidad por las decisiones tomadas o la validez final de los resultados de investigación derivados del uso de esta herramienta.
+        </p>
+    </footer>
+
+    <script>
+        let currentLang = 'es';
+        
+        const uiText = {
+            es: {
+                title: "Asistente de Decisión Estadística",
+                subtitle: "Basado en el artículo \"Modelo para seleccionar pruebas estadísticas implementado en una app bilingüe\"",
+                step: "Paso",
+                back: "Volver al paso anterior",
+                resultTitle: "Prueba Recomendada",
+                path: "Paramétrica",
+                pathNp: "No Paramétrica",
+                summaryIntro: "Para tu escenario de investigación, el cual definiste mediante las siguientes características",
+                summaryOutro: "La opción metodológica más adecuada y rigurosa es la siguiente",
+                additionalReports: "Reportes adicionales recomendados",
+                effectSizeLabel: "Tamaño de Efecto",
+                effectSizeDesc: "Cuantifica la magnitud práctica del hallazgo de forma estandarizada y totalmente independiente del tamaño de la muestra.",
+                ciLabel: "Intervalos de Confianza",
+                ciName: "Reporte al 95%",
+                ciDesc: "Comunica el rango estimado donde probablemente se encuentre el parámetro real de la población, ayudando a visualizar la precisión del análisis.",
+                postHocLabel: "Prueba Post-hoc",
+                postHocDesc: "Sirve para identificar qué grupos o momentos específicos son diferentes entre sí, al mismo tiempo que controla la inflación de falsos positivos (error de Tipo I) al realizar múltiples comparaciones.",
+                restart: "Comenzar un nuevo análisis",
+                disclaimer: "Descargo de responsabilidad: Esta aplicación es una herramienta de apoyo educativo y metodológico basada en directrices conservadoras para ciencias sociales expuestas en la literatura. No sustituye la asesoría formal de un especialista. Los creadores no asumen responsabilidad por las decisiones tomadas o la validez final de los resultados de investigación derivados del uso de esta herramienta."
+            },
+            en: {
+                title: "Statistical Decision Assistant",
+                subtitle: "Based on the article \"Modelo para seleccionar pruebas estadísticas implementado en una app bilingüe\"",
+                step: "Step",
+                back: "Go to previous step",
+                resultTitle: "Recommended Test",
+                path: "Parametric",
+                pathNp: "Nonparametric",
+                summaryIntro: "For your research scenario, which you defined through the following characteristics",
+                summaryOutro: "The most appropriate and methodologically sound choice is the following",
+                additionalReports: "Recommended Additional Reports",
+                effectSizeLabel: "Effect Size",
+                effectSizeDesc: "Quantifies the practical magnitude of the finding in a standardized way that is completely independent of sample size.",
+                ciLabel: "Confidence Intervals",
+                ciName: "95% Calculation",
+                ciDesc: "Communicates the estimated range where the true population parameter is likely to be found, helping visualize the precision of the analysis.",
+                postHocLabel: "Post-hoc Test",
+                postHocDesc: "Identifies which specific groups or time points differ from each other, while controlling for the inflation of false positives (Type I error) when making multiple comparisons.",
+                restart: "Start a new analysis",
+                disclaimer: "Disclaimer: This application is an educational and methodological support tool based on conservative guidelines for the social sciences found in literature. It does not replace formal consultation with a statistician. The creators assume no responsibility for research decisions, interpretation errors, or the validity of results derived from the use of this framework."
+            }
+        };
+
+        const flowData = {
+            start: {
+                question: { es: "¿Cuál es el objetivo principal de tu análisis?", en: "What is the primary goal of your analysis?" },
+                options: [
+                    { 
+                        text: { es: "Comparar grupos (buscar diferencias en una variable dependiente)", en: "Compare groups (assess differences in a dependent variable)" }, 
+                        summary: { es: "Análisis de diferencias entre grupos", en: "Analysis of differences between groups" },
+                        next: "q_data_type" 
+                    },
+                    { 
+                        text: { es: "Evaluar una correlación (fuerza y dirección de una relación entre variables)", en: "Assess correlation (strength and direction of a relationship between variables)" }, 
+                        summary: { es: "Análisis de correlación", en: "Correlation analysis" },
+                        next: "q_corr_type" 
+                    },
+                    { 
+                        text: { es: "Analizar proporciones o frecuencias (datos puramente categóricos)", en: "Analyze proportions or frequencies (purely categorical data)" }, 
+                        summary: { es: "Datos categóricos / Proporciones", en: "Categorical data / Proportions" },
+                        next: "q_cat_rel" 
+                    }
+                ]
+            },
+            
+            // PATH: COMPARISON
+            q_data_type: {
+                question: { es: "¿Qué tipo de datos componen tu variable dependiente?", en: "What type of data makes up your dependent variable?" },
+                options: [
+                    { 
+                        text: { es: "Ordinales (escalas de valoración, tipo Likert, rangos)", en: "Ordinal (rating scales, Likert-type, ordered ranks)" }, 
+                        summary: { es: "Datos de naturaleza ordinal", en: "Ordinal data" },
+                        next: "q_ord_type" 
+                    },
+                    { 
+                        text: { es: "Intervalo / Razón (datos numéricos continuos)", en: "Interval / Ratio (continuous numerical data)" }, 
+                        summary: { es: "Datos continuos (Intervalo/Razón)", en: "Continuous data (Interval/Ratio)" },
+                        next: "q_num_size" 
+                    },
+                    { 
+                        text: { es: "Categóricos / Nominales (frecuencias o proporciones, ej. sí/no, género)", en: "Categorical / Nominal (frequencies or proportions, e.g., yes/no, gender)" }, 
+                        summary: { es: "Datos categóricos / Proporciones", en: "Categorical data / Proportions" },
+                        next: "q_cat_rel" 
+                    }
+                ]
+            },
+            
+            // ORDINAL LOGIC
+            q_ord_type: {
+                question: { es: "¿Tus datos provienen de un solo ítem o de una escala compuesta?", en: "Do your data come from a single item or a composite scale?" },
+                options: [
+                    { 
+                        text: { es: "Ítem individual aislado", en: "Single isolated item" }, 
+                        summary: { es: "Ítem individual (carece de varianza suficiente para asumir continuidad)", en: "Single item (lacks sufficient variance for continuous assumption)" },
+                        next: "res_descriptives_single" 
+                    },
+                    { 
+                        text: { es: "Escala compuesta (suma o promedio de al menos cinco ítems que miden el mismo constructo)", en: "Composite scale (sum or mean of at least five items measuring the same construct)" }, 
+                        summary: { es: "Escala compuesta (al menos cinco ítems del mismo constructo)", en: "Composite scale (at least five items measuring the same construct)" },
+                        next: "q_ord_anchors" 
+                    }
+                ]
+            },
+            q_ord_anchors: {
+                question: { es: "¿Cuántas opciones de respuesta tiene cada ítem que conforma tu escala?", en: "How many response options does each item in your scale have?" },
+                options: [
+                    { 
+                        text: { es: "Menos de 5 opciones (ej. Sí/No, o 3 niveles)", en: "Fewer than 5 options (e.g., Yes/No, or 3 levels)" }, 
+                        summary: { es: "Ítems con menos de 5 opciones (baja varianza)", en: "Items with fewer than 5 options (low variance)" },
+                        next: "q_ord_size_np" 
+                    },
+                    { 
+                        text: { es: "5 o más opciones (ej. escala Likert clásica de 5 o 7 puntos)", en: "5 or more options (e.g., classic 5-point or 7-point Likert scale)" }, 
+                        summary: { es: "Ítems con 5 o más opciones de respuesta", en: "Items with 5 or more response options" },
+                        next: "q_ord_size" 
+                    }
+                ]
+            },
+            q_ord_size: {
+                question: { es: "¿Cuál es el tamaño de tu muestra (n)? (Considera el grupo más pequeño si comparas varios)", en: "What is your sample size (n)? (Consider the smallest group if comparing multiple)" },
+                options: [
+                    { 
+                        text: { es: "Menos de 40 participantes", en: "Fewer than 40 participants" }, 
+                        summary: { es: "Muestra pequeña (n < 40)", en: "Small sample (n < 40)" },
+                        next: "res_descriptives" 
+                    },
+                    { 
+                        text: { es: "Entre 40 y 159 participantes", en: "Between 40 and 159 participants" }, 
+                        summary: { es: "Muestra mediana (40 ≤ n < 160)", en: "Medium sample (40 ≤ n < 160)" },
+                        next: "q_ord_normal" 
+                    },
+                    { 
+                        text: { es: "160 o más participantes", en: "160 or more participants" }, 
+                        summary: { es: "Muestra grande apta para Teorema del Límite Central (n ≥ 160)", en: "Large sample meeting Central Limit Theorem thresholds (n ≥ 160)" },
+                        next: "q_groups_rel_p" 
+                    }
+                ]
+            },
+            q_ord_size_np: {
+                question: { es: "¿Cuál es el tamaño de tu muestra (n)? (Considera el grupo más pequeño si comparas varios)", en: "What is your sample size (n)? (Consider the smallest group if comparing multiple)" },
+                options: [
+                    { 
+                        text: { es: "Menos de 40 participantes", en: "Fewer than 40 participants" }, 
+                        summary: { es: "Muestra pequeña (n < 40)", en: "Small sample (n < 40)" },
+                        next: "res_descriptives" 
+                    },
+                    { 
+                        text: { es: "40 o más participantes", en: "40 or more participants" }, 
+                        summary: { es: "Muestra suficiente para pruebas no paramétricas (n ≥ 40)", en: "Sufficient sample for nonparametric tests (n ≥ 40)" },
+                        next: "q_groups_rel_np" 
+                    }
+                ]
+            },
+            q_ord_normal: {
+                question: { es: "Tras evaluar asimetría e histogramas, ¿la distribución se aproxima a la normal?", en: "After assessing skewness and histograms, does the distribution approximate normality?" },
+                options: [
+                    { 
+                        text: { es: "Sí, presenta una forma razonablemente normal", en: "Yes, it shows a reasonably normal shape" }, 
+                        summary: { es: "Distribución aproximadamente normal", en: "Approximately normal distribution" },
+                        next: "q_groups_rel_p" 
+                    },
+                    { 
+                        text: { es: "No, muestra asimetría o desviaciones importantes", en: "No, it shows significant skewness or deviations" }, 
+                        summary: { es: "Distribución no normal (desviaciones o asimetría)", en: "Non-normal distribution (deviations or skewness present)" },
+                        next: "q_groups_rel_np" 
+                    }
+                ]
+            },
+
+            // INTERVAL/RATIO LOGIC
+            q_num_size: {
+                question: { es: "¿Cuál es el tamaño de tu muestra (n)? (Considera el grupo más pequeño si comparas varios)", en: "What is your sample size (n)? (Consider the smallest group if comparing multiple)" },
+                options: [
+                    { 
+                        text: { es: "Menos de 20 participantes", en: "Fewer than 20 participants" }, 
+                        summary: { es: "Muestra muy reducida (n < 20)", en: "Very small sample (n < 20)" },
+                        next: "res_descriptives" 
+                    },
+                    { 
+                        text: { es: "Entre 20 y 99 participantes", en: "Between 20 and 99 participants" }, 
+                        summary: { es: "Muestra mediana (20 ≤ n < 100)", en: "Medium sample (20 ≤ n < 100)" },
+                        next: "q_num_normal" 
+                    },
+                    { 
+                        text: { es: "100 o más participantes", en: "100 or more participants" }, 
+                        summary: { es: "Muestra grande apta para Teorema del Límite Central (n ≥ 100)", en: "Large sample meeting CLT thresholds (n ≥ 100)" },
+                        next: "q_groups_rel_p" 
+                    }
+                ]
+            },
+            q_num_normal: {
+                question: { es: "¿La distribución de tus datos se aproxima a la normal?", en: "Does the data distribution approximate normality?" },
+                options: [
+                    { 
+                        text: { es: "Sí", en: "Yes" }, 
+                        summary: { es: "Distribución aproximadamente normal", en: "Approximately normal distribution" },
+                        next: "q_groups_rel_p" 
+                    },
+                    { 
+                        text: { es: "No", en: "No" }, 
+                        summary: { es: "Distribución no normal", en: "Non-normal distribution" },
+                        next: "q_groups_rel_np" 
+                    }
+                ]
+            },
+
+            // GROUP RELATIONSHIP (PARAMETRIC)
+            q_groups_rel_p: {
+                question: { es: "¿Tus grupos de comparación son independientes o están relacionados?", en: "Are your comparison groups independent or related?" },
+                options: [
+                    { 
+                        text: { es: "Independientes (personas distintas en cada grupo)", en: "Independent (different participants in each group)" }, 
+                        summary: { es: "Muestras independientes", en: "Independent samples" },
+                        next: "q_ind_num_p" 
+                    },
+                    { 
+                        text: { es: "Relacionados (mismas personas medidas en distintos momentos, ej. pre/post)", en: "Related (same participants measured multiple times, e.g., pre/post)" }, 
+                        summary: { es: "Muestras relacionadas o emparejadas", en: "Related or paired samples" },
+                        next: "q_rel_num_p" 
+                    }
+                ]
+            },
+            q_ind_num_p: {
+                question: { es: "¿Cuántos grupos independientes vas a comparar?", en: "How many independent groups are you comparing?" },
+                options: [
+                    { 
+                        text: { es: "Exactamente 2 grupos", en: "Exactly 2 groups" }, 
+                        summary: { es: "Comparación de 2 grupos", en: "Comparison of 2 groups" },
+                        next: "res_welch_t" 
+                    },
+                    { 
+                        text: { es: "3 o más grupos", en: "3 or more groups" }, 
+                        summary: { es: "Comparación de 3 o más grupos", en: "Comparison of 3 or more groups" },
+                        next: "res_welch_anova" 
+                    }
+                ]
+            },
+            q_rel_num_p: {
+                question: { es: "¿Cuántas mediciones o condiciones relacionadas vas a analizar?", en: "How many related measurements or conditions are you analyzing?" },
+                options: [
+                    { 
+                        text: { es: "Exactamente 2 mediciones", en: "Exactly 2 measurements" }, 
+                        summary: { es: "2 mediciones relacionadas", en: "2 related measurements" },
+                        next: "res_paired_t" 
+                    },
+                    { 
+                        text: { es: "3 o más mediciones", en: "3 or more measurements" }, 
+                        summary: { es: "3 o más mediciones relacionadas", en: "3 or more related measurements" },
+                        next: "res_rm_anova" 
+                    }
+                ]
+            },
+
+            // GROUP RELATIONSHIP (NON-PARAMETRIC)
+            q_groups_rel_np: {
+                question: { es: "¿Tus grupos de comparación son independientes o están relacionados?", en: "Are your comparison groups independent or related?" },
+                options: [
+                    { 
+                        text: { es: "Independientes", en: "Independent" }, 
+                        summary: { es: "Muestras independientes", en: "Independent samples" },
+                        next: "q_ind_num_np" 
+                    },
+                    { 
+                        text: { es: "Relacionados (medidas repetidas)", en: "Related (repeated measures)" }, 
+                        summary: { es: "Muestras relacionadas o repetidas", en: "Related or repeated samples" },
+                        next: "q_rel_num_np" 
+                    }
+                ]
+            },
+            q_ind_num_np: {
+                question: { es: "¿Cuántos grupos vas a comparar?", en: "How many groups are you comparing?" },
+                options: [
+                    { 
+                        text: { es: "Exactamente 2 grupos", en: "Exactly 2 groups" }, 
+                        summary: { es: "Comparación de 2 grupos", en: "Comparison of 2 groups" },
+                        next: "res_mann_whitney" 
+                    },
+                    { 
+                        text: { es: "3 o más grupos", en: "3 or more groups" }, 
+                        summary: { es: "Comparación de 3 o más grupos", en: "Comparison of 3 or more groups" },
+                        next: "res_kruskal_wallis" 
+                    }
+                ]
+            },
+            q_rel_num_np: {
+                question: { es: "¿Cuántas mediciones relacionadas tienes?", en: "How many related measurements do you have?" },
+                options: [
+                    { 
+                        text: { es: "Exactamente 2 mediciones", en: "Exactly 2 measurements" }, 
+                        summary: { es: "2 mediciones repetidas", en: "2 repeated measurements" },
+                        next: "res_wilcoxon" 
+                    },
+                    { 
+                        text: { es: "3 o más mediciones", en: "3 or more measurements" }, 
+                        summary: { es: "3 o más mediciones repetidas", en: "3 or more repeated measurements" },
+                        next: "res_friedman" 
+                    }
+                ]
+            },
+
+            // PATH: CORRELATION
+            q_corr_type: {
+                question: { es: "¿Qué tipo de datos estás correlacionando?", en: "What type of data are you correlating?" },
+                options: [
+                    { 
+                        text: { es: "Ambas variables son numéricas continuas (Intervalo/Razón)", en: "Both variables are continuous numeric (Interval/Ratio)" }, 
+                        summary: { es: "Variables continuas", en: "Continuous variables" },
+                        next: "q_corr_size" 
+                    },
+                    { 
+                        text: { es: "Al menos una variable es Ordinal", en: "At least one variable is Ordinal" }, 
+                        summary: { es: "Presencia de datos ordinales", en: "Presence of ordinal data" },
+                        next: "q_corr_ties" 
+                    }
+                ]
+            },
+            q_corr_size: {
+                question: { es: "Analizando la distribución de ambas variables, ¿se aproxima a la normalidad?", en: "Analyzing the distribution of both variables, do they approximate normality?" },
+                options: [
+                    { 
+                        text: { es: "Sí, ambas son aproximadamente normales (relación lineal asimilable)", en: "Yes, both are approximately normal (assumed linear relationship)" }, 
+                        summary: { es: "Distribución normal en ambas variables", en: "Normal distribution in both variables" },
+                        next: "res_pearson" 
+                    },
+                    { 
+                        text: { es: "No, existe asimetría importante (se busca evaluar relación monotónica)", en: "No, there is significant skewness (aiming to assess monotonic relationship)" }, 
+                        summary: { es: "Falta de normalidad", en: "Lack of normality" },
+                        next: "q_corr_ties" 
+                    }
+                ]
+            },
+            q_corr_ties: {
+                question: { es: "¿Tu tamaño de muestra es pequeño (n < ~80) y observas muchos valores idénticos (empates) en las respuestas?", en: "Is your sample size small (n < ~80) and do you observe many identical values (ties) in responses?" },
+                options: [
+                    { 
+                        text: { es: "Sí, muestra pequeña con múltiples empates", en: "Yes, small sample with multiple ties" }, 
+                        summary: { es: "Muestra reducida con presencia de rangos empatados", en: "Small sample with presence of tied ranks" },
+                        next: "res_kendall" 
+                    },
+                    { 
+                        text: { es: "No, la muestra es mayor o los empates son mínimos", en: "No, larger sample or minimal ties" }, 
+                        summary: { es: "Muestra suficiente sin exceso de empates", en: "Sufficient sample without excessive ties" },
+                        next: "res_spearman" 
+                    }
+                ]
+            },
+
+            // PATH: CATEGORICAL
+            q_cat_rel: {
+                question: { es: "¿Las muestras categóricas son independientes o están relacionadas?", en: "Are the categorical samples independent or related?" },
+                options: [
+                    { 
+                        text: { es: "Independientes (personas distintas)", en: "Independent (different people)" }, 
+                        summary: { es: "Muestras categóricas independientes", en: "Independent categorical samples" },
+                        next: "q_cat_ind_count" 
+                    },
+                    { 
+                        text: { es: "Relacionadas (mediciones repetidas en los mismos sujetos)", en: "Related (repeated measurements on same subjects)" }, 
+                        summary: { es: "Muestras categóricas relacionadas", en: "Related categorical samples" },
+                        next: "q_cat_rel_size" 
+                    }
+                ]
+            },
+            q_cat_ind_count: {
+                question: { es: "En la tabla de contingencia, ¿al menos el 80% de las celdas tienen una frecuencia esperada de 5 o más observaciones? (Típicamente se cumple cuando la n total es ≥ 5 × el número de celdas)", en: "In the contingency table, do at least 80% of cells have an expected frequency of 5 or more? (Typically met when total n is ≥ 5 × the number of cells)" },
+                options: [
+                    { 
+                        text: { es: "Sí, hay suficientes datos en casi todas las celdas", en: "Yes, there is enough data in almost all cells" }, 
+                        summary: { es: "Frecuencias esperadas adecuadas (≥ 5)", en: "Adequate expected frequencies (≥ 5)" },
+                        next: "q_chi_table_size" 
+                    },
+                    { 
+                        text: { es: "No, hay celdas escasas o la muestra total es pequeña", en: "No, there are sparse cells or the total sample is small" }, 
+                        summary: { es: "Frecuencias esperadas insuficientes (< 5)", en: "Insufficient expected frequencies (< 5)" },
+                        next: "res_fisher" 
+                    }
+                ]
+            },
+            q_chi_table_size: {
+                question: { es: "¿De qué tamaño es tu tabla de contingencia?", en: "What size is your contingency table?" },
+                options: [
+                    {
+                        text: { es: "Tabla 2x2 (Variables dicotómicas)", en: "2x2 Table (Dichotomous variables)" },
+                        summary: { es: "Tabla cruzada 2x2", en: "2x2 cross tabulation" },
+                        next: "res_chi_square_2x2"
+                    },
+                    {
+                        text: { es: "Mayor a 2x2", en: "Larger than 2x2" },
+                        summary: { es: "Tabla mayor a 2x2", en: "Table larger than 2x2" },
+                        next: "res_chi_square_large"
+                    }
+                ]
+            },
+            q_cat_rel_size: {
+                question: { es: "¿De qué tamaño es la tabla de contingencia temporal?", en: "What size is the temporal contingency table?" },
+                options: [
+                    { 
+                        text: { es: "Tabla 2x2 (ej. respuestas dicotómicas antes y después)", en: "2x2 table (e.g., dichotomous responses before and after)" }, 
+                        summary: { es: "Tabla relacionada 2x2", en: "2x2 related table" },
+                        next: "res_mcnemar" 
+                    },
+                    { 
+                        text: { es: "Tabla 3x3 o mayor", en: "3x3 table or larger" }, 
+                        summary: { es: "Tabla relacionada mayor a 2x2", en: "Related table larger than 2x2" },
+                        next: "res_mcnemar_bowker" 
+                    }
+                ]
+            },
+
+            // RESULTS
+            res_descriptives_single: {
+                isResult: true,
+                testName: { es: "Estadística Descriptiva No Paramétrica", en: "Nonparametric Descriptive Statistics" },
+                classification: "np",
+                effectSize: { es: "No aplicable", en: "Not applicable" },
+                explanation: { 
+                    es: "Un ítem individual, con su conjunto limitado de respuestas ordenadas, posee una varianza restringida sin importar el tamaño de tu muestra. Aunque técnicamente puede analizarse con pruebas inferenciales no paramétricas, este modelo recomienda, por prudencia, limitar tu reporte a estadísticas descriptivas, tales como porcentajes, frecuencias, la mediana o la moda. Los constructos concretos y sin ambigüedad (p. ej., la satisfacción laboral general) son la excepción reconocida en la literatura para medirse con un solo ítem.", 
+                    en: "A single item, with its limited set of ordered responses, has restricted variance regardless of your sample size. Although it can technically be analyzed with nonparametric inferential tests, this model conservatively recommends limiting your reporting to descriptive statistics, such as percentages, frequencies, the median, or the mode. Concrete, unambiguous constructs (e.g., overall job satisfaction) are the exception recognized in the literature for single-item measurement." 
+                }
+            },
+            res_descriptives: {
+                isResult: true,
+                testName: { es: "Estadística Descriptiva No Paramétrica", en: "Nonparametric Descriptive Statistics" },
+                classification: "np",
+                effectSize: { es: "No aplicable", en: "Not applicable" },
+                explanation: { 
+                    es: "Un tamaño de muestra tan reducido compromete la fiabilidad de las pruebas de normalidad e impide aprovechar la potencia de la estadística inferencial. La aproximación más sensata y rigurosa es limitar el análisis a resumir los datos descriptivamente sin intentar generalizar los hallazgos a la población mayor.", 
+                    en: "Such a small sample size compromises the reliability of normality tests and prevents taking advantage of inferential statistics. The most rigorous and sensible approach is to limit the analysis to summarizing the data descriptively without attempting population generalizations." 
+                }
+            },
+            res_welch_t: {
+                isResult: true,
+                testName: { es: "Prueba t de Welch", en: "Welch's t-test" },
+                classification: "p",
+                effectSize: { es: "d de Cohen", en: "Cohen's d" },
+                explanation: { 
+                    es: "Esta variante ajustada de la prueba t es la mejor opción para este caso, porque maneja de forma precisa la comparación sin exigir que asumas homogeneidad en las varianzas de los grupos. Elimina la necesidad de ejecutar primero la prueba de Levene, ahorrando pasos y reduciendo el riesgo de errores de interpretación.", 
+                    en: "This adjusted variant of the t-test is the best choice for this case, because it handles the comparison smoothly without requiring the assumption of equal variances across groups. It removes the need to run Levene's test first, saving steps and reducing interpretation errors." 
+                }
+            },
+            res_welch_anova: {
+                isResult: true,
+                testName: { es: "ANOVA de Welch", en: "Welch's ANOVA" },
+                classification: "p",
+                effectSize: { es: "ω² (Omega cuadrado)", en: "ω² (Omega squared)" },
+                postHoc: { es: "Prueba de Games-Howell", en: "Games-Howell test" },
+                explanation: { 
+                    es: "Para comparar múltiples grupos independientes, el ANOVA de Welch aporta una robustez superior al ANOVA tradicional. Esto se debe a que ajusta el cálculo matemático compensando directamente cualquier discrepancia en las varianzas poblacionales de los diferentes grupos que estás evaluando.", 
+                    en: "When comparing multiple independent groups, Welch's ANOVA offers superior robustness to traditional ANOVA. This is because it adjusts the mathematical calculation by directly compensating for any discrepancies in the population variances across the groups you are evaluating." 
+                }
+            },
+            res_mann_whitney: {
+                isResult: true,
+                testName: { es: "Prueba U de Mann-Whitney", en: "Mann-Whitney U test" },
+                classification: "np",
+                effectSize: { es: "r", en: "r" },
+                explanation: { 
+                    es: "Al operar mediante la conversión de valores numéricos a rangos ordenados, esta prueba esquiva hábilmente la falta de normalidad y las restricciones propias de los datos ordinales. Te permite contrastar con gran fiabilidad dos grupos independientes sin violar supuestos paramétricos.", 
+                    en: "By converting numerical values into ordered ranks, this test cleverly circumvents non-normality and the constraints of ordinal data. It allows you to reliably contrast two independent groups without violating parametric assumptions." 
+                }
+            },
+            res_kruskal_wallis: {
+                isResult: true,
+                testName: { es: "Prueba H de Kruskal-Wallis", en: "Kruskal-Wallis H test" },
+                classification: "np",
+                effectSize: { es: "η² (Eta cuadrada)", en: "η² (Eta squared)" },
+                postHoc: { es: "Prueba de Dunn (con corrección de Bonferroni)", en: "Dunn's test (with Bonferroni correction)" },
+                explanation: { 
+                    es: "Esta prueba actúa como la evolución de Mann-Whitney para el caso de múltiples grupos. Detecta si al menos uno de los tres o más grupos difiere del resto en sus rangos promedio. Recuerda que el análisis post-hoc es fundamental para localizar exactamente entre qué pares ocurre esta diferencia.", 
+                    en: "This test acts as the evolution of Mann-Whitney for multiple groups. It detects if at least one of the three or more groups differs from the rest in its mean rank. Remember that post-hoc analysis is vital to pinpoint exactly between which pairs the difference occurs." 
+                }
+            },
+            res_paired_t: {
+                isResult: true,
+                testName: { es: "Prueba t para Muestras Emparejadas", en: "Paired Samples t-test" },
+                classification: "p",
+                effectSize: { es: "d de Cohen", en: "Cohen's d" },
+                explanation: { 
+                    es: "Es la herramienta estadística óptima para rastrear el cambio dentro de los mismos sujetos a lo largo del tiempo. Al enfocarse de manera exclusiva en la diferencia matemática entre el momento inicial y final, aísla el efecto del tratamiento reduciendo el ruido estadístico de cada individuo.", 
+                    en: "This is the optimal statistical tool for tracking within-subject change over time. By focusing exclusively on the mathematical difference between the initial and final moment, it isolates the treatment effect while reducing individual statistical noise." 
+                }
+            },
+            res_wilcoxon: {
+                isResult: true,
+                testName: { es: "Prueba Exacta de Wilcoxon-Pratt (o Wilcoxon Signed-Rank)", en: "Wilcoxon-Pratt Exact Test (or Wilcoxon Signed-Rank)" },
+                classification: "np",
+                effectSize: { es: "r", en: "r" },
+                explanation: { 
+                    es: "La prueba clásica usualmente descarta a los participantes que no muestran ningún cambio (los empates numéricos), lo cual le resta poder al análisis final. La modificación de Pratt toma en cuenta estos ceros en la jerarquía de rangos, brindando un resultado notablemente más preciso. Si tu programa estadístico no la incluye, usa la prueba tradicional de Rangos con Signo de Wilcoxon.", 
+                    en: "The classic test usually discards participants who show zero change (numerical ties), which reduces final analytical power. The Pratt modification includes these zeros in the ranking hierarchy, yielding a notably more precise result. If unavailable in your software, use the traditional Wilcoxon Signed-Rank test." 
+                }
+            },
+            res_rm_anova: {
+                isResult: true,
+                testName: { es: "ANOVA de Medidas Repetidas (RM-ANOVA)", en: "Repeated Measures ANOVA (RM-ANOVA)" },
+                classification: "p",
+                effectSize: { es: "ω² (Omega cuadrado)", en: "ω² (Omega squared)" },
+                postHoc: { es: "Comparaciones por pares (Corrección de Bonferroni)", en: "Pairwise comparisons (Bonferroni correction)" },
+                explanation: { 
+                    es: "Esta prueba te permite dar seguimiento puntual a tres o más observaciones sobre el mismo grupo de personas. Considera que su validez depende críticamente de que se cumpla el supuesto de esfericidad, el cual puedes verificar con la prueba de Mauchly. Si este falla, es totalmente indispensable aplicar la corrección de Greenhouse-Geisser al interpretar los datos.", 
+                    en: "This test allows tracking of three or more observations on the same group of subjects. Note that its validity depends critically on meeting the sphericity assumption, which you can verify with Mauchly's test. If it fails, applying the Greenhouse-Geisser correction during data interpretation is absolutely mandatory." 
+                }
+            },
+            res_friedman: {
+                isResult: true,
+                testName: { es: "Prueba de Friedman", en: "Friedman's test" },
+                classification: "np",
+                effectSize: { es: "W de Kendall", en: "Kendall's W" },
+                postHoc: { es: "Prueba de Nemenyi (o Wilcoxon por pares con Bonferroni)", en: "Nemenyi test (or pairwise Wilcoxon with Bonferroni)" },
+                explanation: { 
+                    es: "Este método transforma las valoraciones repetidas de cada participante en una escala de rangos interna. Esto resulta de gran utilidad porque te permite analizar la evolución de variables no paramétricas a través de múltiples momentos en el tiempo de una manera bien equilibrada.", 
+                    en: "This method transforms the repeated valuations of each participant into an internal ranking scale. This is highly useful because it allows the analysis of nonparametric variable evolution across multiple time points in a well-balanced manner." 
+                }
+            },
+            res_pearson: {
+                isResult: true,
+                testName: { es: "Correlación r de Pearson", en: "Pearson's r correlation" },
+                classification: "p",
+                effectSize: { es: "El propio coeficiente r", en: "The r coefficient itself" },
+                explanation: { 
+                    es: "Representa el método estándar para evaluar correlaciones de tipo lineal. Te permite cuantificar con exactitud qué tanto cambia proporcionalmente una variable de naturaleza continua conforme la otra aumenta o disminuye.", 
+                    en: "Represents the standard method for evaluating linear type correlations. It allows you to quantify exactly how much one continuous variable proportionally changes as the other increases or decreases." 
+                }
+            },
+            res_spearman: {
+                isResult: true,
+                testName: { es: "Correlación ρ de Spearman", en: "Spearman's ρ correlation" },
+                classification: "np",
+                effectSize: { es: "El propio coeficiente ρ", en: "The ρ coefficient itself" },
+                explanation: { 
+                    es: "A diferencia de Pearson que se enfoca en buscar líneas rectas, Spearman rastrea las relaciones monotónicas apoyándose en los rangos. Es decir, sirve para detectar si cuando una variable sube, la otra también tiende a subir, sin importar en absoluto que la tasa de cambio sea constante.", 
+                    en: "Unlike Pearson, which focuses on straight lines, Spearman tracks monotonic relationships based on ranks. That is, it serves to detect if when one variable goes up, the other also tends to go up, regardless of whether the rate of change is constant." 
+                }
+            },
+            res_kendall: {
+                isResult: true,
+                testName: { es: "Correlación Tau-b de Kendall (τb)", en: "Kendall's Tau-b correlation (τb)" },
+                classification: "np",
+                effectSize: { es: "El propio coeficiente τ", en: "The τ coefficient itself" },
+                explanation: { 
+                    es: "Cuando cuentas con muestras limitadas en tamaño, o bases de datos donde una gran cantidad de participantes ha escogido exactamente la misma respuesta generando empates numéricos, este estadístico es superior matemáticamente a Spearman. Esto se debe a que ajusta muy bien el cálculo para prevenir resultados de falsos positivos.", 
+                    en: "When you have limited sample sizes, or datasets where a large number of participants have chosen exactly the same response creating numerical ties, this statistic is mathematically superior to Spearman. This is because it adjusts the calculation very well to prevent false positive results." 
+                }
+            },
+            res_chi_square_2x2: {
+                isResult: true,
+                testName: { es: "Prueba Chi-cuadrada (χ²) de Independencia", en: "Chi-Square (χ²) test of independence" },
+                classification: "np",
+                effectSize: { es: "φ (Phi)", en: "φ (Phi)" },
+                explanation: { 
+                    es: "Esta opción contrasta las frecuencias observadas en tu muestra contra los valores que esperaríamos ver si ambas variables fuesen completamente independientes. Al tratarse de una tabla básica de 2x2, el uso del coeficiente de contingencia Phi es la medida adecuada para el tamaño del efecto.", 
+                    en: "This option contrasts the frequencies observed in your sample against the values we would expect to see if both variables were completely independent. Since it is a basic 2x2 table, using the Phi contingency coefficient is the appropriate measure for effect size." 
+                }
+            },
+            res_chi_square_large: {
+                isResult: true,
+                testName: { es: "Prueba Chi-cuadrada (χ²) de Independencia", en: "Chi-Square (χ²) test of independence" },
+                classification: "np",
+                effectSize: { es: "V de Cramer", en: "Cramer's V" },
+                explanation: { 
+                    es: "Funciona contrastando las frecuencias cruzadas de tu matriz para confirmar si hay independencia o dependencia entre los grupos. Para el caso de tablas que son mayores a 2x2, la V de Cramer escala adecuadamente para ofrecerte un tamaño del efecto útil, evitando que haya sobreestimaciones indeseadas.", 
+                    en: "It works by contrasting cross-frequencies in your matrix to confirm independence or dependence between groups. For tables larger than 2x2, Cramer's V scales appropriately to offer a useful effect size, avoiding unwanted overestimations." 
+                }
+            },
+            res_fisher: {
+                isResult: true,
+                testName: { es: "Prueba Exacta de Fisher", en: "Fisher's exact test" },
+                classification: "np",
+                effectSize: { es: "φ (Phi)", en: "φ (Phi)" },
+                explanation: { 
+                    es: "Cuando las muestras con las que trabajas son demasiado pequeñas y no logran cumplir con el criterio mínimo de la Chi-cuadrada, la prueba de Fisher soluciona el obstáculo. Lo hace calculando la probabilidad exacta de obtener la disposición de datos observada, lo cual salvaguarda la integridad de tu análisis final.", 
+                    en: "When the samples you work with are too small and fail to meet the Chi-Square minimum criteria, Fisher's test solves the obstacle. It does so by calculating the exact probability of obtaining the observed data layout, which safeguards the integrity of your final analysis." 
+                }
+            },
+            res_mcnemar: {
+                isResult: true,
+                testName: { es: "Prueba de McNemar", en: "McNemar test" },
+                classification: "np",
+                effectSize: { es: "Razón de Momios (Odds Ratio - OR)", en: "Odds Ratio (OR)" },
+                explanation: { 
+                    es: "Es un método ideal para los experimentos dicotómicos del estilo de comparar un antes y un después. Se enfoca particularmente en las personas que cambiaron su estado o su respuesta cruzada, permitiéndote ver de manera cristalina cuál fue la dirección y la significancia del cambio producido por la intervención que estudias.", 
+                    en: "It is an ideal method for dichotomous experiments of the 'before and after' comparison style. It focuses particularly on participants who changed their state or cross-response, allowing you to clearly see the direction and significance of the change produced by the intervention you are studying." 
+                }
+            },
+            res_mcnemar_bowker: {
+                isResult: true,
+                testName: { es: "Prueba de McNemar-Bowker", en: "McNemar-Bowker test" },
+                classification: "np",
+                effectSize: { es: "DPRS (Discordant Proportion Ratio Sum)", en: "DPRS (Discordant Proportion Ratio Sum)" },
+                explanation: { 
+                    es: "Esta prueba ejerce exactamente la misma lógica comparativa sobre los sujetos que cambian de respuesta que la prueba de McNemar regular, pero ha sido adaptada y extendida para poder acomodar tablas de categorización mucho más complejas como de formato 3x3 o incluso mayores.", 
+                    en: "This test applies exactly the same comparative logic on subjects who change responses as the regular McNemar test, but has been adapted and extended to accommodate much more complex categorization tables such as 3x3 format or even larger." 
+                }
+            }
+        };
+
+        let historyStack = [];
+        let currentNode = 'start';
+
+        const contentArea = document.getElementById('content-area');
+        const btnBack = document.getElementById('btn-back');
+        const stepIndicator = document.getElementById('step-indicator');
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            
+            document.getElementById('btn-es').className = lang === 'es' ? 'lang-active pb-1 transition-all' : 'lang-inactive pb-1 transition-all hover:text-slate-700';
+            document.getElementById('btn-en').className = lang === 'en' ? 'lang-active pb-1 transition-all' : 'lang-inactive pb-1 transition-all hover:text-slate-700';
+            
+            document.getElementById('main-title').textContent = uiText[lang].title;
+            document.getElementById('subtitle').textContent = uiText[lang].subtitle;
+            document.getElementById('back-text').textContent = uiText[lang].back;
+            document.getElementById('disclaimer-text').textContent = uiText[lang].disclaimer;
+            
+            renderNode(currentNode, false);
+        }
+
+        function renderNode(nodeId, animate = true) {
+            const node = flowData[nodeId];
+            
+            if (animate) {
+                contentArea.classList.remove('fade-in');
+                void contentArea.offsetWidth;
+                contentArea.classList.add('fade-in');
+            }
+
+            if (node.isResult) {
+                stepIndicator.textContent = uiText[currentLang].resultTitle;
+                btnBack.style.display = 'block';
+
+                const badgeColor = node.classification === 'p' ? 'bg-indigo-100 text-indigo-800' : 'bg-emerald-100 text-emerald-800';
+                const pathText = node.classification === 'p' ? uiText[currentLang].path : uiText[currentLang].pathNp;
+
+                let summaryItems = '';
+                historyStack.forEach(h => {
+                    const stepNode = flowData[h.id];
+                    const selectedOpt = stepNode.options.find(opt => opt.next === h.next);
+                    if(selectedOpt && selectedOpt.summary) {
+                        summaryItems += `<li class="flex items-start mb-1.5"><span class="text-blue-500 mr-2 mt-0.5">&bull;</span> <span>${selectedOpt.summary[currentLang]}</span></li>`;
+                    }
+                });
+
+                let html = `
+                    <div class="mb-8 border-l-4 border-blue-400 pl-4 py-1">
+                        <p class="text-sm text-slate-500 mb-3 font-medium">${uiText[currentLang].summaryIntro}</p>
+                        <ul class="text-sm text-slate-700 font-medium bg-slate-50 p-4 rounded shadow-sm">
+                            ${summaryItems}
+                        </ul>
+                        <p class="text-sm text-slate-500 mt-3 font-medium">${uiText[currentLang].summaryOutro}</p>
+                    </div>
+
+                    <div class="text-center mb-6">
+                        <h2 class="text-2xl sm:text-3xl font-bold text-slate-800 mb-4">${node.testName[currentLang]}</h2>
+                        <span class="inline-block px-4 py-1.5 rounded-full text-xs font-semibold ${badgeColor} mb-6 tracking-wide uppercase">
+                            ${pathText}
+                        </span>
+                    </div>
+                    
+                    <div class="bg-white p-6 sm:p-8 rounded-xl border border-slate-200 text-left mb-8 shadow-sm">
+                        <p class="text-slate-700 leading-relaxed mb-8">${node.explanation[currentLang]}</p>
+                        
+                        ${node.effectSize.es !== "No aplicable" ? `
+                        <div class="mt-8 pt-6 border-t border-slate-100">
+                            <h3 class="text-lg font-bold text-slate-800 mb-4">${uiText[currentLang].additionalReports}</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                
+                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col h-full">
+                                    <span class="block text-sm font-bold text-slate-800 mb-1">${uiText[currentLang].effectSizeLabel}</span>
+                                    <span class="block text-base text-blue-700 font-medium mb-2">${node.effectSize[currentLang]}</span>
+                                    <p class="text-xs text-slate-500 leading-relaxed flex-grow">${uiText[currentLang].effectSizeDesc}</p>
+                                </div>
+                                
+                                ${node.postHoc ? `
+                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col h-full">
+                                    <span class="block text-sm font-bold text-slate-800 mb-1">${uiText[currentLang].postHocLabel}</span>
+                                    <span class="block text-base text-blue-700 font-medium mb-2">${node.postHoc[currentLang]}</span>
+                                    <p class="text-xs text-slate-500 leading-relaxed flex-grow">${uiText[currentLang].postHocDesc}</p>
+                                </div>
+                                ` : ''}
+                                
+                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col h-full ${!node.postHoc ? 'md:col-span-2 lg:col-span-1' : ''}">
+                                    <span class="block text-sm font-bold text-slate-800 mb-1">${uiText[currentLang].ciLabel}</span>
+                                    <span class="block text-base text-blue-700 font-medium mb-2">${uiText[currentLang].ciName}</span>
+                                    <p class="text-xs text-slate-500 leading-relaxed flex-grow">${uiText[currentLang].ciDesc}</p>
+                                </div>
+
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    <button onclick="restartFlow()" class="mx-auto block px-6 py-3 bg-slate-800 text-white rounded-lg font-medium hover:bg-slate-700 transition-colors shadow-sm w-full sm:w-auto">
+                        ${uiText[currentLang].restart}
+                    </button>
+                `;
+                contentArea.innerHTML = html;
+
+            } else {
+                stepIndicator.textContent = `${uiText[currentLang].step} ${historyStack.length + 1}`;
+                btnBack.style.display = historyStack.length > 0 ? 'block' : 'none';
+
+                let html = `
+                    <h2 class="text-lg sm:text-2xl font-serif text-slate-800 mb-8 text-center leading-snug max-w-2xl mx-auto">
+                        ${node.question[currentLang]}
+                    </h2>
+                    <div class="space-y-3 sm:space-y-4 flex flex-col items-center max-w-xl mx-auto w-full">
+                `;
+
+                node.options.forEach((opt) => {
+                    html += `
+                        <button onclick="goToNext('${opt.next}')" class="w-full text-left px-5 py-4 rounded-xl border-2 border-slate-100 bg-white hover:border-blue-300 hover:shadow-md transition-all text-slate-700 font-medium group flex items-center justify-between">
+                            <span class="pr-4 leading-relaxed">${opt.text[currentLang]}</span>
+                            <span class="text-slate-300 group-hover:text-blue-500 transition-colors flex-shrink-0">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </span>
+                        </button>
+                    `;
+                });
+
+                html += `</div>`;
+                contentArea.innerHTML = html;
+            }
+        }
+
+        function goToNext(nextId) {
+            historyStack.push({ id: currentNode, next: nextId });
+            currentNode = nextId;
+            renderNode(currentNode);
+        }
+
+        function goBack() {
+            if (historyStack.length > 0) {
+                const prev = historyStack.pop();
+                currentNode = prev.id;
+                renderNode(currentNode);
+            }
+        }
+
+        function restartFlow() {
+            historyStack = [];
+            currentNode = 'start';
+            renderNode(currentNode);
+        }
+
+        setLanguage('es');
+    </script>
+</body>
+</html>
